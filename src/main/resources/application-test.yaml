@@ -1,0 +1,3 @@
+post:
+  publisher:
+      batch-size: 2

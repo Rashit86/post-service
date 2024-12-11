@@ -1,0 +1,164 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: user
+    password: password
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  data:
+    redis:
+      port: 6379
+      host: localhost
+
+  services:
+    s3:
+      endpoint: http://127.0.0.1:9000
+      accessKey: user
+      secretKey: password
+      bucketName: post-service-bucket
+      region: US_EAST_1
+
+  servlet:
+    multipart:
+      max-request-size: 100MB
+      max-file-size: 10MB
+
+  kafka:
+    admin:
+      auto-create-topics: false
+      client-id: post-service-kafka-admin
+    bootstrap-servers: localhost:9092
+    producer:
+      acks: all
+      retries: 3
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      bootstrap-servers: localhost:9092
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: faang.school.postservice.model.event.kafka,school.faang.user_service.model.event.kafka
+    listener:
+      ack-mode: manual
+
+server:
+  port: 8081
+
+logging:
+  level:
+    root: info
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: trace
+
+post:
+  moderation:
+    scheduler:
+      cron: "@daily"
+    batch-size: 100
+    file-path: src/main/resources/swear_words.txt
+  publisher:
+    batch-size: 1000
+    scheduler:
+      cron: "0 0/1 * 1/1 * ?" # every minute
+
+  ad-remover:
+    scheduler:
+      cron: "0 0/1 * 1/1 * ?" # every minute
+  max-images-per-post: 10
+  executor:
+    core-pool-size: 8
+    max-pool-size: 16
+    queue-capacity: 32
+
+resources:
+  file:
+    max-file-size: 5242880
+  image:
+    max-width-horizontal: 1080
+    max-height-horizontal: 566
+    max-size-square: 1080
+    supported-image-types: "image/png,image/jpeg,image/jpg"
+  cleanup:
+    scheduler:
+      cron: "0 0 2 * * ?" # каждый день в 2 часа ночи
+    retention-period: 1M # настройка периода: M - месяц, D - день
+
+user-service:
+  host: localhost
+  port: 8080
+project-service:
+  host: localhost
+  port: 8082
+payment-service:
+  host: localhost
+  port: 9080
+
+spell-checker:
+  api:
+    host: https://api.textgears.com
+    key: 18ZFDi6vjqn0XCYm
+    autocorrect: /correct
+    language-detection: /detect
+  scheduler:
+    cron: "0 0 3 * * *" # каждый день в 3 часа ночи
+  batch-size: 100
+
+redis:
+  channels:
+    hashtag: hashtags_channel
+    like_post: like_post_channel
+    post_view: post_view_channel
+    ad_bought: ad_bought_channel
+    user_ban: user_ban_channel
+    comment_channel: comment_channel
+  feed:
+    comment:
+      max-size: 3
+    ttl:
+      post: 86400
+      user: 86400
+      comment: 86400
+      post-view: 86400
+      like: 86400
+    size: 500
+    heater:
+      time-range-days: 7
+      batch-size: 100
+
+kafka:
+  topics:
+    post: post_topic
+    comment: comment_topic
+    post-view: post_view_topic
+    like: like_topic
+    feed-heat: feed_heat_topic
+    author-published-post: author_published_post_topic
+    author-of-comment: author_of_comment_topic
+    author-post-by-heat: author_post_by_heat_topic
+  consumer:
+    groups:
+      post-service:
+        concurrency: 3
+        group-id: post-service-group
+      feed-heat:
+        concurrency: 3
+        group-id: feed-heater-group
+
+scheduler:
+  cron:
+    ban-users: "0 0 0 * * ?"
+
+system-user-id: -1
